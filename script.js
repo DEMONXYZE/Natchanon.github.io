@@ -36,10 +36,50 @@ let projects = [];
 let tasks    = [];
 let avatar   = '';
 let taskFilter = 'all';
+let _pwUnlocked = false;
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // show/hide loading overlay
+// ─── PASSWORD ───
+function requirePassword(onSuccess) {
+  if (_pwUnlocked) { onSuccess(); return; }
+  let ov = document.getElementById("pw-ov");
+  if (!ov) {
+    ov = document.createElement("div");
+    ov.id = "pw-ov";
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;font-family:var(--sans)";
+    ov.innerHTML = `<div style="background:var(--card,#fff);border-radius:16px;padding:32px 28px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18)"><div style="font-size:18px;font-weight:600;margin-bottom:6px;color:var(--text1,#111)">&#128274; ยืนยันตัวตน</div><div style="font-size:13px;color:var(--text2,#666);margin-bottom:18px">ใส่ password เพื่อแก้ไขข้อมูล</div><input id="pw-input" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border,#e0e0e0);font-size:14px;outline:none;margin-bottom:10px"/><div id="pw-err" style="color:#ff5e5e;font-size:12px;min-height:16px;margin-bottom:10px"></div><div style="display:flex;gap:10px"><button onclick="closePwModal()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--border,#e0e0e0);background:transparent;cursor:pointer;font-size:14px;color:var(--text2,#666)">ยกเลิก</button><button id="pw-btn" style="flex:1;padding:10px;border-radius:8px;border:none;background:#FF6B35;color:#fff;cursor:pointer;font-size:14px;font-weight:500">ยืนยัน</button></div></div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener("keydown", e => { if(e.key==="Escape") closePwModal(); });
+  }
+  document.getElementById("pw-input").value = "";
+  document.getElementById("pw-err").textContent = "";
+  ov.style.display = "flex";
+  setTimeout(() => document.getElementById("pw-input").focus(), 80);
+  document.getElementById("pw-btn").onclick = async () => {
+    const val = document.getElementById("pw-input").value;
+    if (!val) return;
+    document.getElementById("pw-btn").textContent = "...";
+    const row = await sbGet("portfolio_data");
+    if (row && row.app_password && row.app_password === val) {
+      _pwUnlocked = true;
+      closePwModal();
+      onSuccess();
+    } else {
+      document.getElementById("pw-err").textContent = "Password ไม่ถูกต้อง";
+      document.getElementById("pw-btn").textContent = "ยืนยัน";
+      document.getElementById("pw-input").value = "";
+      document.getElementById("pw-input").focus();
+    }
+  };
+  document.getElementById("pw-input").onkeydown = e => { if (e.key === "Enter") document.getElementById("pw-btn").click(); };
+}
+function closePwModal() {
+  const ov = document.getElementById("pw-ov");
+  if (ov) ov.style.display = "none";
+}
+
 function showLoading(msg) {
   let el = document.getElementById('sb-loading');
   if (!el) {
@@ -214,6 +254,8 @@ function closeSidebar(){
 
 // ─── AVATAR ───
 function handleAvatar(input){
+  requirePassword(()=>_doHandleAvatar(input)); }
+function _doHandleAvatar(input){
   const f=input.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=e=>{ avatar=e.target.result; applyAvatar(); saveAll(); };
@@ -237,6 +279,8 @@ function applyAvatar(){
 
 // ─── PROFILE ───
 function openEditProfile(){
+  requirePassword(_doOpenEditProfile); }
+function _doOpenEditProfile(){
   const p=profile;
   document.getElementById('pf-name').value=p.name||'';
   document.getElementById('pf-year').value=p.year||'3';
@@ -408,6 +452,8 @@ function renderProjects(){
 }
 
 function openProjModal(id){
+  requirePassword(()=>_doOpenProjModal(id)); }
+function _doOpenProjModal(id){
   document.getElementById('proj-eid').value='';
   document.getElementById('pj-name').value='';
   document.getElementById('pj-desc').value='';
@@ -510,6 +556,8 @@ function toggleTask(id){
 function delTask(id){ if(!confirm('ลบงานนี้?')) return; tasks=tasks.filter(x=>x.id!==id); saveAll(); renderTasks(); }
 
 function openTaskModal(id){
+  requirePassword(()=>_doOpenTaskModal(id)); }
+function _doOpenTaskModal(id){
   document.getElementById('task-eid').value='';
   document.getElementById('tk-name').value='';
   document.getElementById('tk-sub').value='';
