@@ -40,7 +40,6 @@ let _pwUnlocked = false;
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-// show/hide loading overlay
 // ─── PASSWORD ───
 const _lockSVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`;
 
@@ -101,6 +100,126 @@ function closePwModal() {
   if (ov) ov.style.display = "none";
 }
 
+// ─── PASSWORD CONFIRM FOR DELETE ───
+// แสดง modal ยืนยันการลบพร้อมกรอก password
+// label = ชื่อของสิ่งที่จะลบ (เพื่อแสดง), onConfirmed = callback เมื่อยืนยันแล้ว
+function requirePasswordForDelete(label, onConfirmed) {
+  // สร้าง overlay ถ้ายังไม่มี
+  let ov = document.getElementById("del-pw-ov");
+  if (!ov) {
+    ov = document.createElement("div");
+    ov.id = "del-pw-ov";
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10001;display:flex;align-items:center;justify-content:center;font-family:var(--sans)";
+    document.body.appendChild(ov);
+  }
+
+  const trashSVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>`;
+
+  ov.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:28px;width:340px;max-width:90vw;box-sizing:border-box;animation:pop .18s cubic-bezier(.4,0,.2,1)">
+      <!-- Header icon + title -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,94,94,.12);display:flex;align-items:center;justify-content:center;color:#ff5e5e;flex-shrink:0">
+          ${trashSVG}
+        </div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);font-family:var(--display)">ยืนยันการลบ</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:1px">การดำเนินการนี้ไม่สามารถย้อนกลับได้</div>
+        </div>
+      </div>
+
+      <!-- ชื่อที่จะลบ -->
+      <div style="background:rgba(255,94,94,.07);border:1px solid rgba(255,94,94,.2);border-radius:10px;padding:10px 14px;margin:16px 0;font-size:13px;color:#ff5e5e;font-weight:500;display:flex;align-items:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="del-item-label" style="word-break:break-all"></span>
+      </div>
+
+      <!-- ช่องรหัสผ่าน -->
+      <div style="margin-bottom:6px">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px">รหัสผ่าน</label>
+        <div style="position:relative">
+          <input id="del-pw-input" type="password" placeholder="ใส่รหัสผ่านเพื่อยืนยัน"
+            style="width:100%;box-sizing:border-box;padding:11px 44px 11px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text);font-size:14px;font-family:var(--sans);outline:none;transition:border-color .15s"/>
+          <span id="del-eye-btn" onclick="toggleDelPwEye()" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);display:flex;align-items:center">
+            <svg id="del-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+      </div>
+      <div id="del-pw-err" style="color:#ff5e5e;font-size:12px;min-height:16px;margin-bottom:14px"></div>
+
+      <!-- ปุ่ม -->
+      <div style="display:flex;gap:10px">
+        <button id="del-cancel-btn" onclick="closeDelPwModal()"
+          style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);font-family:var(--sans);transition:all .15s">
+          ยกเลิก
+        </button>
+        <button id="del-confirm-btn"
+          style="flex:1;padding:11px;border-radius:10px;border:none;background:#ff5e5e;color:#fff;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity .15s">
+          ${trashSVG.replace('width="22" height="22"','width="14" height="14"')}
+          ลบ
+        </button>
+      </div>
+    </div>`;
+
+  // ตั้งค่า label
+  document.getElementById("del-item-label").textContent = label;
+  document.getElementById("del-pw-input").value = "";
+  document.getElementById("del-pw-err").textContent = "";
+
+  ov.style.display = "flex";
+  setTimeout(() => document.getElementById("del-pw-input").focus(), 80);
+
+  // focus style
+  const inp = document.getElementById("del-pw-input");
+  inp.onfocus = () => inp.style.borderColor = "#ff5e5e";
+  inp.onblur  = () => inp.style.borderColor = "var(--border2)";
+  inp.onkeydown = e => { if (e.key === "Enter") document.getElementById("del-confirm-btn").click(); };
+
+  // ปุ่มยืนยัน
+  document.getElementById("del-confirm-btn").onclick = async () => {
+    const val = document.getElementById("del-pw-input").value;
+    if (!val) {
+      document.getElementById("del-pw-err").textContent = "⚠️ กรุณาใส่รหัสผ่าน";
+      return;
+    }
+    const btn = document.getElementById("del-confirm-btn");
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin .7s linear infinite"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`;
+    btn.disabled = true;
+
+    const row = await sbGet("portfolio_data");
+    if (row && row.app_password && row.app_password === val) {
+      closeDelPwModal();
+      onConfirmed();
+    } else {
+      document.getElementById("del-pw-err").textContent = "❌ รหัสผ่านไม่ถูกต้อง";
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg> ลบ`;
+      btn.disabled = false;
+      document.getElementById("del-pw-input").value = "";
+      document.getElementById("del-pw-input").focus();
+    }
+  };
+
+  // ปิดเมื่อคลิก backdrop
+  ov.onclick = e => { if (e.target === ov) closeDelPwModal(); };
+}
+
+function closeDelPwModal() {
+  const ov = document.getElementById("del-pw-ov");
+  if (ov) ov.style.display = "none";
+}
+
+function toggleDelPwEye() {
+  const inp = document.getElementById("del-pw-input");
+  const icon = document.getElementById("del-eye-icon");
+  if (inp.type === "password") {
+    inp.type = "text";
+    icon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+  } else {
+    inp.type = "password";
+    icon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+}
+
 function showLoading(msg) {
   let el = document.getElementById('sb-loading');
   if (!el) {
@@ -139,13 +258,11 @@ function showToast(msg, ok=true) {
 
 // ─── SAVE TO SUPABASE ───
 async function saveAll() {
-  // always save to localStorage as backup
   localStorage.setItem('pf-profile', JSON.stringify(profile));
   localStorage.setItem('pf-projects', JSON.stringify(projects));
   localStorage.setItem('pf-tasks', JSON.stringify(tasks));
   if(avatar) localStorage.setItem('pf-avatar', avatar);
 
-  // save to Supabase
   try {
     await sbUpsert('portfolio_data', {
       id: 1,
@@ -170,18 +287,15 @@ async function loadFromSupabase() {
       projects = JSON.parse(row.projects_json || '[]');
       tasks    = JSON.parse(row.tasks_json    || '[]');
       avatar   = row.avatar_data || '';
-      // sync to localStorage
       localStorage.setItem('pf-profile',  row.profile_json  || '{}');
       localStorage.setItem('pf-projects', row.projects_json || '[]');
       localStorage.setItem('pf-tasks',    row.tasks_json    || '[]');
       if(avatar) localStorage.setItem('pf-avatar', avatar);
     } else {
-      // no cloud data yet — try localStorage
       profile  = JSON.parse(localStorage.getItem('pf-profile')  || '{}');
       projects = JSON.parse(localStorage.getItem('pf-projects') || '[]');
       tasks    = JSON.parse(localStorage.getItem('pf-tasks')    || '[]');
       avatar   = localStorage.getItem('pf-avatar') || '';
-      // only inject sample data when truly nothing exists anywhere
       if(!projects.length && !tasks.length) _injectSampleData();
     }
   } catch(e) {
@@ -235,7 +349,6 @@ function toggleTheme(){
     if(tb) tb.innerHTML=moonBigSVG;
   }
 }
-// init icon
 (()=>{
   const icon=document.getElementById('theme-icon');
   const lbl=document.getElementById('theme-lbl');
@@ -354,11 +467,9 @@ function applyProfile(){
     document.getElementById('hero-chips').innerHTML=tags.map((t,i)=>`<span class="chip${i<2?' hl':''}">${esc(t)}</span>`).join('');
     document.getElementById('ab-skills').innerHTML=tags.map(t=>`<span class="sk-chip">${esc(t)}</span>`).join('');
   }
-  // about
   if(p.school)  document.getElementById('ab-school').textContent=p.school;
   if(p.faculty) document.getElementById('ab-faculty').textContent=p.faculty;
   document.getElementById('ab-year').textContent=`ปี ${p.year||'3'} · ${p.school||'University'}`;
-  // links
   if(p.github){
     ['link-gh','hs-gh'].forEach(id=>{const el=document.getElementById(id);if(el)el.href=p.github;});
     if(document.getElementById('c-github')) document.getElementById('c-github').href=p.github;
@@ -369,12 +480,8 @@ function applyProfile(){
     if(document.getElementById('c-linkedin')) document.getElementById('c-linkedin').href=p.linkedin;
     if(document.getElementById('c-linkedin-text')) document.getElementById('c-linkedin-text').textContent='LinkedIn';
   }
-  if(p.ig){
-    ['link-ig','hs-ig'].forEach(id=>{const el=document.getElementById(id);if(el)el.href=p.ig;});
-  }
-  if(p.fb){
-    ['link-fb','hs-fb'].forEach(id=>{const el=document.getElementById(id);if(el)el.href=p.fb;});
-  }
+  if(p.ig){ ['link-ig','hs-ig'].forEach(id=>{const el=document.getElementById(id);if(el)el.href=p.ig;}); }
+  if(p.fb){ ['link-fb','hs-fb'].forEach(id=>{const el=document.getElementById(id);if(el)el.href=p.fb;}); }
   if(p.line){
     const lineUrl='https://line.me/ti/p/'+encodeURIComponent(p.line);
     ['link-line','hs-line'].forEach(id=>{const el=document.getElementById(id);if(el)el.href=lineUrl;});
@@ -384,7 +491,6 @@ function applyProfile(){
     if(document.getElementById('c-email')) document.getElementById('c-email').href='mailto:'+p.email;
     if(document.getElementById('c-email-text')) document.getElementById('c-email-text').textContent=p.email;
   }
-  // interests
   if(p.interests !== undefined){
     const items=(p.interests||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
     const dots=['var(--accent)','var(--teal)','var(--sky)','var(--green)','var(--pink)'];
@@ -393,7 +499,6 @@ function applyProfile(){
       ? items.map((t,i)=>`<div class="interest-item"><div class="interest-dot" style="background:${dots[i%dots.length]}"></div>${esc(t)}</div>`).join('')
       : el.innerHTML;
   }
-  // experience
   const expEl=document.getElementById('ab-exp');
   if(expEl && p.experiences && p.experiences.length){
     expEl.innerHTML=p.experiences.map((ex,i,arr)=>`
@@ -406,7 +511,6 @@ function applyProfile(){
         </div>
       </div>`).join('');
   }
-  // stats
   document.getElementById('pst-year').textContent=p.year||'3';
   document.getElementById('pst-proj').textContent=projects.length;
   document.getElementById('pst-done').textContent=tasks.filter(t=>t.status==='Done').length;
@@ -470,11 +574,6 @@ const statusBadge = {
   wip:       {bg:'rgba(255,179,71,.12)',c:'#FFB347',t:'In Progress'},
   concept:   {bg:'rgba(79,172,254,.12)',c:'#4FACFE',t:'Concept'},
 };
-const statusDot = {
-  completed: '#52C97A',
-  wip:       '#FFB347',
-  concept:   '#4FACFE',
-};
 
 function renderProjects(){
   const grid=document.getElementById('proj-grid');
@@ -514,7 +613,7 @@ function renderProjects(){
             <button class="task-act" onclick="editProject('${p.id}')" style="color:var(--text2)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
-            <button class="task-act" onclick="delProject('${p.id}')">
+            <button class="task-act" onclick="delProject('${p.id}','${esc(p.name)}')">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
             </button>
           </div>
@@ -563,10 +662,17 @@ function _doOpenProjModal(id){
 function editProject(id){ openProjModal(id); }
 function closeProjModal(){ document.getElementById('proj-ov').classList.remove('open'); }
 function closeProjIfOut(e){ if(e.target===document.getElementById('proj-ov')) closeProjModal(); }
-function delProject(id){
-  if(!confirm('ลบโปรเจกต์นี้?')) return;
-  projects=projects.filter(x=>x.id!==id); saveAll(); renderProjects();
+
+// ── ลบ Project — ต้องใส่รหัสผ่าน ──
+function delProject(id, name){
+  requirePasswordForDelete(`ลบ Project: "${name || id}"`, () => {
+    projects = projects.filter(x => x.id !== id);
+    saveAll();
+    renderProjects();
+    showToast('🗑️ ลบ Project แล้ว', false);
+  });
 }
+
 function saveProject(){
   const name=document.getElementById('pj-name').value.trim();
   if(!name){ document.getElementById('pj-name').focus(); return; }
@@ -621,7 +727,7 @@ function renderTasks(){
       <div class="task-right">
         <span class="task-prio prio-${t.priority}">${t.priority}</span>
         <button class="task-act" onclick="openTaskModal('${t.id}')" style="color:var(--text2)">✎</button>
-        <button class="task-act" onclick="delTask('${t.id}')">✕</button>
+        <button class="task-act" onclick="delTask('${t.id}','${esc(t.name)}')">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -633,7 +739,16 @@ function toggleTask(id){
   t.status=t.status==='Done'?'Todo':'Done';
   saveAll(); renderTasks();
 }
-function delTask(id){ if(!confirm('ลบงานนี้?')) return; tasks=tasks.filter(x=>x.id!==id); saveAll(); renderTasks(); }
+
+// ── ลบ Task — ต้องใส่รหัสผ่าน ──
+function delTask(id, name){
+  requirePasswordForDelete(`ลบ Task: "${name || id}"`, () => {
+    tasks = tasks.filter(x => x.id !== id);
+    saveAll();
+    renderTasks();
+    showToast('🗑️ ลบ Task แล้ว', false);
+  });
+}
 
 function openTaskModal(id){
   requirePassword(()=>_doOpenTaskModal(id)); }
@@ -679,7 +794,7 @@ function saveTask(){
 
 // ─── KEYBOARD ───
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){ closeEditProfile(); closeProjModal(); closeTaskModal(); closeEditAbout(); }
+  if(e.key==='Escape'){ closeEditProfile(); closeProjModal(); closeTaskModal(); closeEditAbout(); closeDelPwModal(); }
 });
 
 // ─── INIT ───
