@@ -120,6 +120,8 @@ async function loadFromSupabase() {
       projects = JSON.parse(localStorage.getItem('pf-projects') || '[]');
       tasks    = JSON.parse(localStorage.getItem('pf-tasks')    || '[]');
       avatar   = localStorage.getItem('pf-avatar') || '';
+      // only inject sample data when truly nothing exists anywhere
+      if(!projects.length && !tasks.length) _injectSampleData();
     }
   } catch(e) {
     console.warn('Supabase load failed, using localStorage:', e);
@@ -127,8 +129,25 @@ async function loadFromSupabase() {
     projects = JSON.parse(localStorage.getItem('pf-projects') || '[]');
     tasks    = JSON.parse(localStorage.getItem('pf-tasks')    || '[]');
     avatar   = localStorage.getItem('pf-avatar') || '';
+    if(!projects.length && !tasks.length) _injectSampleData();
   }
   hideLoading();
+}
+
+function _injectSampleData(){
+  const d=o=>{const x=new Date;x.setDate(x.getDate()+o);return x.toISOString().split('T')[0]};
+  projects=[
+    {id:uid(),name:'Smart Campus App',desc:'Mobile app ช่วยนักศึกษาตรวจสอบตาราง, ข่าว และห้องว่างภายในมหาวิทยาลัย',emoji:'🏫',color:'orange',tech:'React Native, Node.js, MongoDB',github:'#',demo:'#',status:'wip'},
+    {id:uid(),name:'Algo Visualizer',desc:'Web app สำหรับ visualize sorting & graph algorithms แบบ step-by-step',emoji:'🔬',color:'teal',tech:'JavaScript, D3.js, HTML/CSS',github:'#',demo:'#',status:'completed'},
+    {id:uid(),name:'Budget Tracker CLI',desc:'Command-line tool สำหรับบันทึกรายรับ-รายจ่าย พร้อม export CSV',emoji:'💰',color:'green',tech:'Python, SQLite',github:'#',demo:'',status:'completed'},
+  ];
+  tasks=[
+    {id:uid(),name:'Data Structures HW#3',sub:'CS301',priority:'High',deadline:d(2),status:'In Progress',created:Date.now()-3000},
+    {id:uid(),name:'OS Lab — Process Scheduling',sub:'CS402',priority:'High',deadline:d(3),status:'Todo',created:Date.now()-2000},
+    {id:uid(),name:'Senior Project Report',sub:'Senior Project',priority:'Medium',deadline:d(10),status:'In Progress',created:Date.now()-1000},
+    {id:uid(),name:'Network Lab Report',sub:'CS501',priority:'Low',deadline:d(14),status:'Todo',created:Date.now()-500},
+  ];
+  saveAll();
 }
 
 const sunSVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
@@ -534,23 +553,6 @@ function saveTask(){
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){ closeEditProfile(); closeProjModal(); closeTaskModal(); }
 });
-
-// ─── SAMPLE DATA ───
-if(!projects.length){
-  const d=o=>{const x=new Date;x.setDate(x.getDate()+o);return x.toISOString().split('T')[0]};
-  projects=[
-    {id:uid(),name:'Smart Campus App',desc:'Mobile app ช่วยนักศึกษาตรวจสอบตาราง, ข่าว และห้องว่างภายในมหาวิทยาลัย',emoji:'🏫',color:'orange',tech:'React Native, Node.js, MongoDB',github:'#',demo:'#',status:'wip'},
-    {id:uid(),name:'Algo Visualizer',desc:'Web app สำหรับ visualize sorting & graph algorithms แบบ step-by-step',emoji:'🔬',color:'teal',tech:'JavaScript, D3.js, HTML/CSS',github:'#',demo:'#',status:'completed'},
-    {id:uid(),name:'Budget Tracker CLI',desc:'Command-line tool สำหรับบันทึกรายรับ-รายจ่าย พร้อม export CSV',emoji:'💰',color:'green',tech:'Python, SQLite',github:'#',demo:'',status:'completed'},
-  ];
-  tasks=[
-    {id:uid(),name:'Data Structures HW#3',sub:'CS301',priority:'High',deadline:d(2),status:'In Progress',created:Date.now()-3000},
-    {id:uid(),name:'OS Lab — Process Scheduling',sub:'CS402',priority:'High',deadline:d(3),status:'Todo',created:Date.now()-2000},
-    {id:uid(),name:'Senior Project Report',sub:'Senior Project',priority:'Medium',deadline:d(10),status:'In Progress',created:Date.now()-1000},
-    {id:uid(),name:'Network Lab Report',sub:'CS501',priority:'Low',deadline:d(14),status:'Todo',created:Date.now()-500},
-  ];
-  saveAll();
-}
 
 // ─── INIT ───
 loadFromSupabase().then(() => {
