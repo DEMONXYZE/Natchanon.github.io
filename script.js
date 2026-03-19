@@ -385,31 +385,13 @@ function applyProfile(){
     if(document.getElementById('c-email-text')) document.getElementById('c-email-text').textContent=p.email;
   }
   // interests
-  if(p.interests){
+  if(p.interests !== undefined){
+    const items=(p.interests||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
     const dots=['var(--accent)','var(--teal)','var(--sky)','var(--green)','var(--pink)'];
-    const items=p.interests.split('\n').map(s=>s.trim()).filter(Boolean);
     const el=document.getElementById('ab-interests');
-    if(el) el.innerHTML=items.map((t,i)=>`<div class="interest-item"><div class="interest-dot" style="background:${dots[i%dots.length]}"></div>${esc(t)}</div>`).join('');
-  }
-  // experience
-  if(p.experiences && p.experiences.length){
-    const expEl=document.getElementById('ab-exp');
-    if(expEl) expEl.innerHTML=p.experiences.map((ex,i,arr)=>`
-      <div class="exp-item">
-        <div class="exp-dot-col"><div class="exp-dot"></div>${i<arr.length-1?'<div class="exp-line"></div>':''}</div>
-        <div class="exp-info">
-          <div class="exp-title">${esc(ex.title||'')}</div>
-          <div class="exp-place">${esc(ex.place||'')}</div>
-          <div class="exp-period">${esc(ex.period||'')}</div>
-        </div>
-      </div>`).join('');
-  }
-  // interests
-  if(p.interests){
-    const ilist=(p.interests||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
-    const icols=['var(--accent)','var(--teal)','var(--sky)','var(--green)','var(--pink)'];
-    const iel=document.getElementById('ab-interests');
-    if(iel) iel.innerHTML=ilist.map((t,i)=>`<div class="interest-item"><div class="interest-dot" style="background:${icols[i%icols.length]}"></div>${esc(t)}</div>`).join('');
+    if(el) el.innerHTML=items.length
+      ? items.map((t,i)=>`<div class="interest-item"><div class="interest-dot" style="background:${dots[i%dots.length]}"></div>${esc(t)}</div>`).join('')
+      : el.innerHTML;
   }
   // experience
   const expEl=document.getElementById('ab-exp');
@@ -432,12 +414,10 @@ function applyProfile(){
 }
 
 // ─── ABOUT MODAL ───
-function openEditAbout(){
-  requirePassword(_doOpenEditAbout);
-}
+function openEditAbout(){ requirePassword(_doOpenEditAbout); }
 function _doOpenEditAbout(){
   const p=profile;
-  document.getElementById('ab-interests-input').value=p.interests||'Full-stack Web Development\nSystem Design & Architecture\nDevOps & Cloud Computing\nOpen Source Contribution';
+  document.getElementById('ab-interests-input').value=(p.interests!==undefined ? p.interests : 'Full-stack Web Development\nSystem Design & Architecture\nDevOps & Cloud Computing\nOpen Source Contribution');
   const fields=document.getElementById('exp-fields');
   fields.innerHTML='';
   const exps=(p.experiences&&p.experiences.length)?p.experiences:[{title:'',place:'',period:''}];
@@ -450,52 +430,10 @@ function addExpField(){ _addExpRow({title:'',place:'',period:''}); }
 function _addExpRow(ex){
   const fields=document.getElementById('exp-fields');
   const div=document.createElement('div');
-  div.style.cssText='border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;position:relative';
+  div.style.cssText='border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;position:relative';
   div.innerHTML=`
-    <button onclick="this.parentElement.remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;color:var(--text2);font-size:16px;line-height:1">&#x2715;</button>
-    <div class="fg" style="margin-bottom:8px"><input class="fi" placeholder="ตำแหน่ง / บทบาท" value="${esc(ex.title||'')}"></div>
-    <div class="fg" style="margin-bottom:8px"><input class="fi" placeholder="บริษัท / องค์กร" value="${esc(ex.place||'')}"></div>
-    <div class="fg"><input class="fi" placeholder="เช่น ม.ค. 2567 – ปัจจุบัน" value="${esc(ex.period||'')}"></div>`;
-  fields.appendChild(div);
-}
-function saveAbout(){
-  profile.interests=document.getElementById('ab-interests-input').value.trim();
-  const rows=document.getElementById('exp-fields').querySelectorAll('div[style]');
-  profile.experiences=Array.from(rows).map(row=>{
-    const inputs=row.querySelectorAll('input');
-    return{title:inputs[0].value.trim(),place:inputs[1].value.trim(),period:inputs[2].value.trim()};
-  }).filter(ex=>ex.title||ex.place);
-  saveAll().then(()=>showToast('✓ บันทึก About Me แล้ว'));
-  applyProfile();
-  closeEditAbout();
-}
-
-// ─── ABOUT MODAL ───
-function openEditAbout(){
-  requirePassword(_doOpenEditAbout);
-}
-function _doOpenEditAbout(){
-  const p=profile;
-  document.getElementById('ab-interests-input').value=(p.interests||'Full-stack Web Development
-System Design & Architecture
-DevOps & Cloud Computing
-Open Source Contribution');
-  const fields=document.getElementById('exp-fields');
-  fields.innerHTML='';
-  const exps=(p.experiences&&p.experiences.length)?p.experiences:[{title:'',place:'',period:''}];
-  exps.forEach(ex=>_addExpRow(ex));
-  document.getElementById('about-ov').classList.add('open');
-}
-function closeEditAbout(){ document.getElementById('about-ov').classList.remove('open'); }
-function closeAboutIfOut(e){ if(e.target===document.getElementById('about-ov')) closeEditAbout(); }
-function addExpField(){ _addExpRow({title:'',place:'',period:''}); }
-function _addExpRow(ex){
-  const fields=document.getElementById('exp-fields');
-  const div=document.createElement('div');
-  div.style.cssText='border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;position:relative;background:var(--bg3)';
-  div.innerHTML=`
-    <button onclick="this.parentElement.remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--text2);font-size:16px;line-height:1;padding:2px 6px">&#x2715;</button>
-    <input class="fi" placeholder="ตำแหน่ง / บทบาท เช่น Frontend Developer" value="${esc(ex.title||'')}">
+    <button onclick="this.parentElement.remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;color:var(--text2);font-size:16px;line-height:1">✕</button>
+    <input class="fi" placeholder="ตำแหน่ง / บทบาท" value="${esc(ex.title||'')}">
     <input class="fi" placeholder="บริษัท / องค์กร" value="${esc(ex.place||'')}">
     <input class="fi" placeholder="เช่น ม.ค. 2567 – ปัจจุบัน" value="${esc(ex.period||'')}">`;
   fields.appendChild(div);
