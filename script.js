@@ -42,33 +42,61 @@ const esc = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 
 // show/hide loading overlay
 // ─── PASSWORD ───
+const _lockSVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`;
+const _eyeSVG  = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const _eyeOffSVG=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
 function requirePassword(onSuccess) {
   if (_pwUnlocked) { onSuccess(); return; }
   let ov = document.getElementById("pw-ov");
   if (!ov) {
     ov = document.createElement("div");
     ov.id = "pw-ov";
-    ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;font-family:var(--sans)";
-    ov.innerHTML = `<div style="background:var(--card,#fff);border-radius:16px;padding:32px 28px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18)"><div style="font-size:18px;font-weight:600;margin-bottom:6px;color:var(--text1,#111)">&#128274; ยืนยันตัวตน</div><div style="font-size:13px;color:var(--text2,#666);margin-bottom:18px">ใส่ password เพื่อแก้ไขข้อมูล</div><input id="pw-input" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border,#e0e0e0);font-size:14px;outline:none;margin-bottom:10px"/><div id="pw-err" style="color:#ff5e5e;font-size:12px;min-height:16px;margin-bottom:10px"></div><div style="display:flex;gap:10px"><button onclick="closePwModal()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--border,#e0e0e0);background:transparent;cursor:pointer;font-size:14px;color:var(--text2,#666)">ยกเลิก</button><button id="pw-btn" style="flex:1;padding:10px;border-radius:8px;border:none;background:#FF6B35;color:#fff;cursor:pointer;font-size:14px;font-weight:500">ยืนยัน</button></div></div>`;
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;font-family:var(--sans)";
+    ov.innerHTML = `
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:32px 28px;width:320px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="display:flex;align-items:center;color:var(--text2)">${_lockSVG}</span>
+          <span style="font-size:17px;font-weight:600;color:var(--text)">ยืนยันตัวตน</span>
+        </div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:20px">ใส่ password เพื่อแก้ไขข้อมูล</div>
+        <div style="position:relative;margin-bottom:8px">
+          <input id="pw-input" type="password" placeholder="Password"
+            style="width:100%;box-sizing:border-box;padding:10px 40px 10px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text);font-size:14px;outline:none;transition:border .15s"/>
+          <button id="pw-eye" onclick="(()=>{const i=document.getElementById('pw-input');const e=document.getElementById('pw-eye');i.type=i.type==='password'?'text':'password';e.innerHTML=i.type==='password'?'${_eyeSVG.replace(/`/g,"'")}':'${_eyeOffSVG.replace(/`/g,"'")}'})()" 
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);display:flex;padding:4px">${_eyeSVG}</button>
+        </div>
+        <div id="pw-err" style="color:#ff5e5e;font-size:12px;min-height:18px;margin-bottom:12px"></div>
+        <div style="display:flex;gap:10px">
+          <button onclick="closePwModal()"
+            style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;font-size:14px;color:var(--text2);transition:background .15s">ยกเลิก</button>
+          <button id="pw-btn"
+            style="flex:1;padding:10px;border-radius:10px;border:none;background:#FF6B35;color:#fff;cursor:pointer;font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s">
+            <span style="display:flex;align-items:center">${_lockSVG.replace('width="20" height="20"','width="14" height="14"')}</span>ยืนยัน
+          </button>
+        </div>
+      </div>`;
     document.body.appendChild(ov);
     ov.addEventListener("keydown", e => { if(e.key==="Escape") closePwModal(); });
   }
   document.getElementById("pw-input").value = "";
+  document.getElementById("pw-input").type = "password";
+  document.getElementById("pw-eye").innerHTML = _eyeSVG;
   document.getElementById("pw-err").textContent = "";
   ov.style.display = "flex";
   setTimeout(() => document.getElementById("pw-input").focus(), 80);
   document.getElementById("pw-btn").onclick = async () => {
     const val = document.getElementById("pw-input").value;
     if (!val) return;
-    document.getElementById("pw-btn").textContent = "...";
+    document.getElementById("pw-btn").innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin .7s linear infinite"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`;
     const row = await sbGet("portfolio_data");
     if (row && row.app_password && row.app_password === val) {
       _pwUnlocked = true;
       closePwModal();
       onSuccess();
     } else {
-      document.getElementById("pw-err").textContent = "Password ไม่ถูกต้อง";
-      document.getElementById("pw-btn").textContent = "ยืนยัน";
+      document.getElementById("pw-err").textContent = "❌ Password ไม่ถูกต้อง";
+      document.getElementById("pw-btn").innerHTML = `<span style="display:flex;align-items:center">${_lockSVG.replace('width="20" height="20"','width="14" height="14"')}</span>ยืนยัน`;
       document.getElementById("pw-input").value = "";
       document.getElementById("pw-input").focus();
     }
