@@ -270,6 +270,7 @@ body {
 .main {
   margin-left: var(--sidebar);
   flex: 1; min-width: 0;
+  width: calc(100% - var(--sidebar));
 }
 
 /* TOP BAR (mobile) */
@@ -312,7 +313,8 @@ body {
 .section {
   display: none; padding: clamp(28px,5vw,56px) clamp(20px,5vw,56px);
   animation: fadein .3s var(--ease);
-  max-width: 900px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .section.active { display: block; }
 @keyframes fadein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
