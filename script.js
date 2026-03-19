@@ -60,12 +60,8 @@ function requirePassword(onSuccess) {
           <span style="font-size:17px;font-weight:600;color:var(--text)">ยืนยันตัวตน</span>
         </div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:20px">ใส่ password เพื่อแก้ไขข้อมูล</div>
-        <div style="display:flex;align-items:center;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg3);margin-bottom:8px;overflow:hidden">
-          <input id="pw-input" type="password" placeholder="Password"
-            style="flex:1;padding:10px 8px 10px 14px;border:none;background:transparent;color:var(--text);font-size:14px;outline:none"/>
-          <button id="pw-eye" onclick="(()=>{const i=document.getElementById('pw-input');const e=document.getElementById('pw-eye');i.type=i.type==='password'?'text':'password';e.innerHTML=i.type==='password'?'${_eyeSVG.replace(/`/g,"'")}':'${_eyeOffSVG.replace(/`/g,"'")}'})()" 
-            style="background:none;border:none;cursor:pointer;color:var(--text2);display:flex;align-items:center;padding:0 12px 0 4px;flex-shrink:0">${_eyeSVG}</button>
-        </div>
+        <input id="pw-input" type="password" placeholder="Password"
+          style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text);font-size:14px;outline:none;margin-bottom:8px"/>
         <div id="pw-err" style="color:#ff5e5e;font-size:12px;min-height:18px;margin-bottom:12px"></div>
         <div style="display:flex;gap:10px">
           <button onclick="closePwModal()"
@@ -81,7 +77,6 @@ function requirePassword(onSuccess) {
   }
   document.getElementById("pw-input").value = "";
   document.getElementById("pw-input").type = "password";
-  document.getElementById("pw-eye").innerHTML = _eyeSVG;
   document.getElementById("pw-err").textContent = "";
   ov.style.display = "flex";
   setTimeout(() => document.getElementById("pw-input").focus(), 80);
