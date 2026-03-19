@@ -138,9 +138,9 @@ function requirePasswordForDelete(label, onConfirmed) {
       <div style="margin-bottom:6px">
         <label style="font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px">รหัสผ่าน</label>
         <div style="position:relative">
-          <input id="del-pw-input" type="password" placeholder="ใส่รหัสผ่านเพื่อยืนยัน"
+          <input id="del-pw-input" type="password" placeholder="ใส่รหัสผ่านเพื่อยืนยัน" autocomplete="new-password"
             style="width:100%;box-sizing:border-box;padding:11px 44px 11px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text);font-size:14px;font-family:var(--sans);outline:none;transition:border-color .15s"/>
-          <span id="del-eye-btn" onclick="toggleDelPwEye()" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);display:flex;align-items:center">
+          <span onclick="toggleDelPwEye()" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);display:flex;align-items:center">
             <svg id="del-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
         </div>
